@@ -4,16 +4,14 @@ var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.AUTO,
 
 var eClient;
 var eServerProxy;
-var sprite;
 var gArcade;
-var otherPlayers = [];
-var otherSprites = [];
-var player = null;
-var tchat; // Namespace 
+var tchat; 
+
+var filter,sprite;
 
 function preload()
 {
-	game.load.image('block', './assets/block.png');
+	game.load.image('star', './assets/jets.png');
 }
 
 function create()
@@ -21,99 +19,74 @@ function create()
 	eClient = new Eureca.Client();
 	eClient.ready(function(serverProxy){
 		console.log(appname +' client side connection');		
-	
-		game.physics.startSystem(Phaser.Physics.ARCADE);
-
 		gArcade 		= game.physics.arcade;
 		eServerProxy 	= serverProxy;
 		tchat			= eClient.exports.tchat = {}; // Namespace
 
-		// First thing the user sees, DOM stuff
-		$('#nick').val('anon-'+new Date().getTime().toString(32)); 
+	//  From http://glslsandbox.com/e#18918.0
+    // Tenjix",
 
-		// we can use chat now
- 		$('#sendBtn').click(function() {
-  			if (!eServerProxy) return; 
-  			if (!player) return; 
- 			eServerProxy.tchat.send($('#msg').val());
-			$('#msg').val('');
- 		});
+    var fragmentSrc = [
 
- 		$('#logBtn').click(function() {
+        "precision mediump float;",
 
-  			if (!eServerProxy) return;   
+        "uniform float     time;",
+        "uniform vec2     resolution;",
 
-			// Login button clicked, lets handle it
-  			eServerProxy.tchat.login($('#nick').val()).onReady(function(result){
+        "#define PI 3.1415926535897932384626433832795",
 
-				// Show chat menu
-				$('#auth').fadeOut('fast', function() {
-					$('#main').fadeIn('fast');	
-				});
+        "const float position = 0.0;",
+        "const float scale = 1.0;",
+        "const float intensity = 1.0;",
 
-				// Player object created, lets give it sprite
-				player = result.player;
-				player.sprite = game.add.sprite(200,game.world.centerY+100,'block');
-				player.sprite.anchor.set(0.5);
-				game.physics.arcade.enable(player.sprite);
-				$(document).prop('title', player.nick);	
-				
-				// This player is all set.
-				eServerProxy.tchat.loggedIn().onReady(function(){
-					console.log('We are all set');
-				});
-			});
- 		}); 
-	
-		tchat.send = function(nick, message){
-	  		var tchatline = $('<li><b>'+nick+' </b><span>'+message+'</span></li>');
-		  	$('#msgbox').append(tchatline);
-		}
+        // "varying vec2 surfacePosition;",
+        // "vec2 pos;",
 
-		tchat.getPos = function()
-		{
-			return {id:player.id, x:player.sprite.position.x, y:player.sprite.position.y};
-		}
+        "float band(vec2 pos, float amplitude, float frequency) {",
+            "float wave = scale * amplitude * sin(1.0 * PI * frequency * pos.x + time) / 2.05;",
+            "float light = clamp(amplitude * frequency * 0.02, 0.001 + 0.001 / scale, 5.0) * scale / abs(wave - pos.y);",
+            "return light;",
+        "}",
 
-		tchat.userConnected = function()
-		{
-			console.log(player.nick + ' is searching for others...');
-			eServerProxy.tchat.lookForOthers().onReady(function(others){
-					otherPlayers = others;
-					console.log('Hey! A new user is logged! '+otherPlayers.length + ' found so far');
-					
-				for(var i =0; i < otherPlayers.length; i++)
-				{
-					var enemy = otherPlayers[i];
-					if(!enemy) return;
-					enemy.sprite = game.add.sprite(200,game.world.centerY+100,'block');
-					enemy.sprite.anchor.set(0.5);
-					game.physics.arcade.enable(enemy.sprite);
+        "void main() {",
 
-					otherSprites.push(enemy);
-				}
-			});
-		}	
-	});	
+            "vec3 color = vec3(0.5, 1.5, 10.0);",
+            "color = color == vec3(0.0)? vec3(0.5, 10.5, 1.0) : color;",
+            "vec2 pos = (gl_FragCoord.xy / resolution.xy);",
+            "pos.y += - 0.5;",
+            "float spectrum = 0.0;",
+            "const float lim = 28.0;",
+            "#define time time*0.037 + pos.x*10.",
+            "for(float i = 0.0; i < lim; i++){",
+                "spectrum += band(pos, 1.0*sin(time*0.1/PI), 1.0*sin(time*i/lim))/pow(lim, 0.25);",
+            "}",
+
+            "spectrum += band(pos, cos(10.7), 2.5);",
+            "spectrum += band(pos, 0.4, sin(2.0));",
+            "spectrum += band(pos, 0.05, 4.5);",
+            "spectrum += band(pos, 0.1, 7.0);",
+            "spectrum += band(pos, 0.1, 1.0);",
+
+            "gl_FragColor = vec4(color * spectrum, spectrum);",
+
+        "}"
+
+    ];
+
+    filter = new Phaser.Filter(game, null, fragmentSrc);
+    filter.setResolution(window.innerWidth, window.innerHeight);
+
+    sprite = game.add.sprite();
+    sprite.width = window.innerWidth;
+    sprite.height = window.innerHeight;
+
+    sprite.filters = [ filter ];
+ 	}); 
 }
 
-// when we get more players, the ID will be diferent in arrays so it would act funny 
-// when looping through them
-function update()
-{
-	if(player && player.sprite){
-		gArcade.moveToPointer(player.sprite,300);	
-		//console.log(player.sprite.position.x);
-	}
-
-	for(var i =0; i < otherPlayers.length; i++)
-	{
-		var enemy = otherPlayers[i];
-		if(!enemy) return;
-		
-		// go to server and get the new updated coords
-		// return id,x,y
-	}
+function update(){	
+	if(!filter)return;
+	filter.update();
 }
 
 function render(){}
