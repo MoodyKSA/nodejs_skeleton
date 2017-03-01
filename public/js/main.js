@@ -36,7 +36,7 @@ function create()
         "#define PI 3.1415926535897932384626433832795",
 
         "const float position = 0.0;",
-        "const float scale = 1.0;",
+        "const float scale = 0.4;",
         "const float intensity = 1.0;",
 
         // "varying vec2 surfacePosition;",
@@ -50,10 +50,10 @@ function create()
 
         "void main() {",
 
-            "vec3 color = vec3(0.5, 1.5, 10.0);",
+            "vec3 color = vec3(1.0,1.5,2.0);",
             "color = color == vec3(0.0)? vec3(0.5, 10.5, 1.0) : color;",
             "vec2 pos = (gl_FragCoord.xy / resolution.xy);",
-            "pos.y += - 0.5;",
+            "pos.y += - 0.1;",
             "float spectrum = 0.0;",
             "const float lim = 28.0;",
             "#define time time*0.037 + pos.x*10.",
