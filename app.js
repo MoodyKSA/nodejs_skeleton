@@ -6,16 +6,14 @@ var Eureca  = require('eureca.io');
 
 app.use(express.static(__dirname+'/public'));
 app.get('/',function(req, res, send){res.sendfile('index.html');});
-server.listen(8080,function(){console.log(appname+'listening');});
+server.listen(8080,function(){console.log(appname+'listening on *:8080');});
 
 var connections = {};
 var eServer= new Eureca.Server({allow:['']});
 	eServer.attach(server); 
-var tchatServer = eServer.exports.tchat = {};
 	
 eServer.onConnect(function(connection){	
 	connections[connection.id] = {
-		player:null,
 		client: eServer.getClient(connection.id)};			
 });
 
